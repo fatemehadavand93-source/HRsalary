@@ -1,0 +1,12 @@
+﻿.venv/
+HR_salary/.venv/
+__pycache__/
+*.pyc
+build/
+dist/
+*.db
+*.sqlite
+*.sqlite3
+HR.TXT
+leaves.json
+.env
