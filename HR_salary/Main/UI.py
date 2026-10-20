@@ -3,6 +3,7 @@ import json
 import sys
 from pathlib import Path
 from tkinter import ttk, messagebox
+import json
 
 import customtkinter as ctk
 import jdatetime
@@ -11,6 +12,7 @@ import pandas as pd
 from calendar_data import CalendarData
 from read_file import AttendanceReader
 from work_time import WorkHoursCalculator
+
 
 
 ANNUAL_LEAVE_LIMIT = 26
@@ -35,7 +37,7 @@ class HRApp:
 
         ctk.set_appearance_mode("System")
         ctk.set_default_color_theme("blue")
-
+        
         try:
             self.df = AttendanceReader(
                 str(APP_DIR / "HR.TXT")).read()
@@ -475,15 +477,12 @@ class HRApp:
         try:
             year, month = self.get_year_month()
     
-            # بارگذاری اطلاعات تقویم
             self.calendar = CalendarData(year, month)
             cale = self.calendar.get_calendar_data()
     
-            # خواندن اطلاعات حضور و غیاب
-            reader = AttendanceReader("HR.TXT")
+            reader = AttendanceReader(str(APP_DIR / "HR.TXT"))         
             df = reader.read()
     
-            # محاسبه ساعت کاری
             calc = WorkHoursCalculator(
                 df=df,
                 cale=cale,
@@ -495,11 +494,9 @@ class HRApp:
             mandatory_hours = calc.calculate_mandatory_hours()
             calc.adjust_delay()
     
-            # ساعت کاری روزانه معتبر و مجموع ساعت کاری ثبت‌شده
             daily_hours = calc.calculate_daily_hours()
             recorded_hours = daily_hours.groupby(level="id").sum()
     
-            # جمع مرخصی ساعتی هر کارمند در ماه انتخاب‌شده
             hourly_leave_by_employee = {}
     
             for employee_id, records in self.leaves.items():
@@ -517,7 +514,6 @@ class HRApp:
                             + float(leave.get("hours", 0))
                         )
     
-            # محاسبه ساعت کاری خالص پس از کسر مرخصی ساعتی
             hourly_leave = {}
     
             for (employee_id, date), duration in daily_hours.items():
@@ -528,7 +524,6 @@ class HRApp:
                     date.day
                 )
     
-                # مجموع مرخصی ساعتی ثبت‌شده برای همان روز
                 leave_hours = sum(
                     float(leave.get("hours", 0))
                     for leave in self.leaves.get(int(employee_id), [])
@@ -543,7 +538,6 @@ class HRApp:
             calc.hourly_leave = hourly_leave
             net_hours = calc.calculate_operating_hours()
     
-            # فیلتر شناسه کارمند، در صورت وارد شدن
             employee_text = self.id_entry.get().strip()
             if employee_text:
                 selected_id = int(employee_text)
@@ -552,11 +546,9 @@ class HRApp:
                 employee_ids = set(recorded_hours.index)
                 employee_ids.update(hourly_leave_by_employee.keys())
     
-            # پاک کردن ردیف‌های قبلی جدول
             for item in self.tree.get_children():
                 self.tree.delete(item)
     
-            # نمایش وضعیت هر کارمند
             for employee_id in sorted(employee_ids):
                 recorded = recorded_hours.get(
                     employee_id, pd.Timedelta(0)
@@ -770,7 +762,6 @@ class HRApp:
             pady=10
         )
 
-        # Define kind before using it.
         kind = ctk.CTkComboBox(
             form,
             values=[
@@ -859,7 +850,6 @@ class HRApp:
                 f"{date.day:02d}"
             )
 
-            # Do not modify the stored records until saving succeeds.
             old_records = self.leaves.get(
                 employee_id,
                 []
@@ -881,7 +871,6 @@ class HRApp:
             else:
                 days = amount
 
-                # Count annual leave in the same Jalali year.
                 previous_annual = 0.0
 
                 for item in records:
@@ -958,7 +947,6 @@ class HRApp:
 
             win.destroy()
 
-    # Save button must be outside save(), but inside open_leave_window().
         ctk.CTkButton(
             win,
             text="Save Leave",
